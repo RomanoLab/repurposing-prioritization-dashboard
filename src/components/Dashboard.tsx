@@ -68,31 +68,52 @@ const Dashboard: React.FC = () => {
 
   return (
     <div style={{ padding: "20px", maxWidth: "100%", overflow: "auto" }}>
-      <header style={{ marginBottom: "24px" }}>
-        <h1
-          style={{
-            margin: "0 0 8px 0",
-            color: "#1976d2",
-            fontSize: "32px",
-            fontWeight: "bold",
-          }}
-        >
-          Drug Repurposing Prioritization Dashboard
-        </h1>
-        <p
-          style={{
-            margin: 0,
-            color: "#666",
-            fontSize: "16px",
-            lineHeight: "1.5",
-          }}
-        >
-          Interactive analysis of drug-disease pairs for repurposing
-          opportunities ranked by Final Priority Score (composite of all
-          metrics). Use search filters to find specific drugs or diseases. Click
-          anywhere on a row to expand and view detailed narratives. Click column
-          headers to sort data.
-        </p>
+      <header
+        style={{
+          marginBottom: "24px",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "20px",
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <h1
+            style={{
+              margin: "0 0 8px 0",
+              color: "#1976d2",
+              fontSize: "32px",
+              fontWeight: "bold",
+            }}
+          >
+            Drug Repurposing Prioritization Dashboard
+          </h1>
+          <p
+            style={{
+              margin: 0,
+              color: "#666",
+              fontSize: "16px",
+              lineHeight: "1.5",
+            }}
+          >
+            Interactive analysis of drug-disease pairs for repurposing
+            opportunities ranked by Final Priority Score (composite of all
+            metrics). Use search filters to find specific drugs or diseases.
+            Click anywhere on a row to expand and view detailed narratives.
+            Click column headers to sort data.
+          </p>
+        </div>
+        <div style={{ flexShrink: 0 }}>
+          <img
+            src="/everycure_blue@4x.webp"
+            alt="Every Cure Logo"
+            style={{
+              height: "60px",
+              width: "auto",
+              objectFit: "contain",
+            }}
+          />
+        </div>
       </header>
 
       <div
@@ -136,9 +157,14 @@ const Dashboard: React.FC = () => {
           Real implementation would connect to clinical databases and literature
           sources.
         </p>
-        <p style={{ margin: 0 }}>
+        <p style={{ margin: "0 0 8px 0" }}>
           <strong>Future Enhancements:</strong> Support for Arrow/Parquet data
           formats, advanced filtering, sorting, and export capabilities.
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong>Funding Support:</strong> Funding for the Drug Repurposing
+          Prioritization Dashboard is provided by Arnold Ventures ([GRANT
+          NUMBER, ETC.]).
         </p>
       </footer>
     </div>
