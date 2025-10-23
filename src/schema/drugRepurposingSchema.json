@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/drug-repurposing-schema.json",
+  "title": "Drug Repurposing Data Schema",
+  "description": "Schema for validating drug-disease pair data for repurposing prioritization",
+  "type": "object",
+  "required": ["drugDiseasePairs"],
+  "properties": {
+    "drugDiseasePairs": {
+      "type": "array",
+      "description": "Array of drug-disease pair candidates for repurposing",
+      "minItems": 0,
+      "items": {
+        "$ref": "#/definitions/drugDiseasePair"
+      }
+    }
+  },
+  "definitions": {
+    "drugDiseasePair": {
+      "type": "object",
+      "description": "A single drug-disease pair with associated prioritization metrics",
+      "required": [
+        "id",
+        "drugName",
+        "drugNdcCode",
+        "diseaseName",
+        "diseaseOntologyTerm",
+        "biologicalSuitability",
+        "unmetMedicalNeed",
+        "economicSuitability",
+        "marketSize",
+        "competitiveAdvantage",
+        "regulatoryFeasibility",
+        "clinicalRisk",
+        "compositePrioritizationScore",
+        "narrative"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the drug-disease pair",
+          "minLength": 1
+        },
+        "drugName": {
+          "type": "string",
+          "description": "Name of the drug candidate",
+          "minLength": 1
+        },
+        "drugNdcCode": {
+          "type": "string",
+          "description": "National Drug Code (NDC) for the drug",
+          "pattern": "^[0-9]{4,5}-[0-9]{3,4}-[0-9]{1,2}$"
+        },
+        "diseaseName": {
+          "type": "string",
+          "description": "Name of the target disease",
+          "minLength": 1
+        },
+        "diseaseOntologyTerm": {
+          "type": "string",
+          "description": "Ontology term identifier for the disease (e.g., MONDO ID)",
+          "pattern": "^[A-Z]+:[0-9]+$"
+        },
+        "biologicalSuitability": {
+          "type": "number",
+          "description": "Score for biological plausibility and mechanism of action (0-10 scale)",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "unmetMedicalNeed": {
+          "type": "number",
+          "description": "Score for severity and availability of treatments (0-10 scale)",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "economicSuitability": {
+          "type": "number",
+          "description": "Score for development costs and economic feasibility (0-10 scale)",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "marketSize": {
+          "type": "number",
+          "description": "Score for patient population and market potential (0-10 scale)",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "competitiveAdvantage": {
+          "type": "number",
+          "description": "Score for uniqueness versus existing therapies (0-10 scale)",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "regulatoryFeasibility": {
+          "type": "number",
+          "description": "Score for regulatory pathway and approval likelihood (0-10 scale)",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "clinicalRisk": {
+          "type": "number",
+          "description": "Score for safety concerns and trial failure risk (0-10 scale, lower is better)",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "compositePrioritizationScore": {
+          "type": "number",
+          "description": "Overall prioritization score (composite of all metrics)",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "narrative": {
+          "type": "string",
+          "description": "Detailed narrative explaining the repurposing rationale",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

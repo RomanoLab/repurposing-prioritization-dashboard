@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import DrugRepurposingTable from "./DrugRepurposingTable";
-import type {
-  DrugDiseasePair,
-  DrugRepurposingData,
-} from "../types/DrugDiseasePair";
+import AdvancedOptions, {
+  DEFAULT_WEIGHTS,
+  type ComponentWeights,
+} from "./AdvancedOptions";
+import { applyWeightsToPairs } from "../utils/priorityCalculation";
+import { validateDrugRepurposingData } from "../utils/dataValidator";
+import type { DrugDiseasePair } from "../types/DrugDiseasePair";
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DrugDiseasePair[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [weights, setWeights] = useState<ComponentWeights>(DEFAULT_WEIGHTS);
 
   useEffect(() => {
     const loadData = async () => {
@@ -18,8 +22,20 @@ const Dashboard: React.FC = () => {
         if (!response.ok) {
           throw new Error(`Failed to load data: ${response.statusText}`);
         }
-        const jsonData: DrugRepurposingData = await response.json();
-        setData(jsonData.drugDiseasePairs);
+        const jsonData = await response.json();
+
+        // Validate the data against the schema
+        const validationResult = validateDrugRepurposingData(jsonData);
+
+        if (!validationResult.valid) {
+          const errorMessages = validationResult.errors
+            .map((err) => `${err.path}: ${err.message}`)
+            .join("; ");
+          throw new Error(`Data validation failed: ${errorMessages}`);
+        }
+
+        console.log("✓ Data validation passed");
+        setData(validationResult.data!.drugDiseasePairs);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
@@ -31,6 +47,11 @@ const Dashboard: React.FC = () => {
 
     loadData();
   }, []);
+
+  // Recalculate priority scores based on current weights
+  const weightedData = useMemo(() => {
+    return applyWeightsToPairs(data, weights);
+  }, [data, weights]);
 
   if (loading) {
     return (
@@ -140,7 +161,9 @@ const Dashboard: React.FC = () => {
         </span>
       </div>
 
-      <DrugRepurposingTable data={data} />
+      <AdvancedOptions weights={weights} onWeightsChange={setWeights} />
+
+      <DrugRepurposingTable data={weightedData} />
 
       <footer
         style={{
