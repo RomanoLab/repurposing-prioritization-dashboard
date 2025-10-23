@@ -18,6 +18,8 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
   const [drugFilter, setDrugFilter] = useState("");
   const [diseaseFilter, setDiseaseFilter] = useState("");
   const gridRef = useRef<any>(null);
+  const structureContainersRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const structureRootsRef = useRef<Map<string, any>>(new Map());
 
   const filteredData = useMemo(() => {
     return data.filter((item) => {
@@ -85,18 +87,30 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
 
           // Drug structure container (only if CID is available)
           if (item.pubchemCid) {
-            const structureContainer = document.createElement("div");
-            structureContainer.style.cssText = "flex-shrink: 0;";
-            contentDiv.appendChild(structureContainer);
-
-            // Render React component into the structure container using createRoot
-            const structureRoot = createRoot(structureContainer);
-            structureRoot.render(
-              React.createElement(DrugStructure, {
-                pubchemCid: item.pubchemCid,
-                drugName: item.drugName,
-              }),
+            // Get or create persistent structure container
+            let structureContainer = structureContainersRef.current.get(
+              item.id,
             );
+            if (!structureContainer) {
+              structureContainer = document.createElement("div");
+              structureContainer.style.cssText = "flex-shrink: 0;";
+              structureContainersRef.current.set(item.id, structureContainer);
+
+              // Create React root for the new container
+              const structureRoot = createRoot(structureContainer);
+              structureRootsRef.current.set(item.id, structureRoot);
+
+              // Initial render
+              structureRoot.render(
+                React.createElement(DrugStructure, {
+                  pubchemCid: item.pubchemCid,
+                  drugName: item.drugName,
+                }),
+              );
+            }
+
+            // Append the persistent container to the content
+            contentDiv.appendChild(structureContainer);
           }
 
           // Narrative text
