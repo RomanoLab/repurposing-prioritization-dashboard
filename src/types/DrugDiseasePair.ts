@@ -2,6 +2,7 @@ export interface DrugDiseasePair {
   id: string;
   drugName: string;
   drugNdcCode: string;
+  pubchemCid?: string;
   diseaseName: string;
   diseaseOntologyTerm: string;
   biologicalSuitability: number;

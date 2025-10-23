@@ -51,6 +51,11 @@
           "description": "National Drug Code (NDC) for the drug",
           "pattern": "^[0-9]{4,5}-[0-9]{3,4}-[0-9]{1,2}$"
         },
+        "pubchemCid": {
+          "type": "string",
+          "description": "PubChem Compound Identifier (CID) for the drug structure",
+          "pattern": "^[0-9]+$"
+        },
         "diseaseName": {
           "type": "string",
           "description": "Name of the target disease",

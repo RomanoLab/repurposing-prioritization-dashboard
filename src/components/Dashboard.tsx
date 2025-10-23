@@ -88,91 +88,111 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: "20px", maxWidth: "100%", overflow: "auto" }}>
-      <header
-        style={{
-          marginBottom: "24px",
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: "20px",
-        }}
-      >
-        <div style={{ flex: 1 }}>
-          <h1
-            style={{
-              margin: "0 0 8px 0",
-              color: "#1976d2",
-              fontSize: "32px",
-              fontWeight: "bold",
-            }}
-          >
-            Drug Repurposing Prioritization Dashboard
-          </h1>
-          <p
-            style={{
-              margin: 0,
-              color: "#666",
-              fontSize: "16px",
-              lineHeight: "1.5",
-            }}
-          >
-            Interactive analysis of drug-disease pairs for repurposing
-            opportunities ranked by Final Priority Score (composite of all
-            metrics). Use search filters to find specific drugs or diseases.
-            Click anywhere on a row to expand and view detailed narratives.
-            Click column headers to sort data.
-          </p>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        overflow: "hidden",
+      }}
+    >
+      <div style={{ padding: "20px", flex: "0 0 auto" }}>
+        <header
+          style={{
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: "20px",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <h1
+              style={{
+                margin: "0 0 8px 0",
+                color: "#1976d2",
+                fontSize: "32px",
+                fontWeight: "bold",
+              }}
+            >
+              Drug Repurposing Prioritization Dashboard
+            </h1>
+            <p
+              style={{
+                margin: 0,
+                color: "#666",
+                fontSize: "16px",
+                lineHeight: "1.5",
+              }}
+            >
+              Interactive analysis of drug-disease pairs for repurposing
+              opportunities ranked by Final Priority Score (composite of all
+              metrics). Use search filters to find specific drugs or diseases.
+              Click anywhere on a row to expand and view detailed narratives.
+              Click column headers to sort data.
+            </p>
+          </div>
+          <div style={{ flexShrink: 0 }}>
+            <img
+              src="/everycure_blue@4x.webp"
+              alt="Every Cure Logo"
+              style={{
+                height: "60px",
+                width: "auto",
+                objectFit: "contain",
+              }}
+            />
+          </div>
+        </header>
+
+        <div
+          style={{
+            marginBottom: "16px",
+            padding: "12px",
+            backgroundColor: "#e3f2fd",
+            borderRadius: "4px",
+            border: "1px solid #bbdefb",
+          }}
+        >
+          <strong>Scoring Guide:</strong>
+          <span style={{ color: "#4CAF50", marginLeft: "8px" }}>
+            ■ High (8.0+)
+          </span>
+          <span style={{ color: "#FF9800", marginLeft: "8px" }}>
+            ■ Medium (6.0-7.9)
+          </span>
+          <span style={{ color: "#F44336", marginLeft: "8px" }}>
+            ■ Low (&lt;6.0)
+          </span>
+          <span style={{ marginLeft: "16px", fontStyle: "italic" }}>
+            Note: Clinical Risk is inverted (lower scores are better)
+          </span>
         </div>
-        <div style={{ flexShrink: 0 }}>
-          <img
-            src="/everycure_blue@4x.webp"
-            alt="Every Cure Logo"
-            style={{
-              height: "60px",
-              width: "auto",
-              objectFit: "contain",
-            }}
-          />
-        </div>
-      </header>
+
+        <AdvancedOptions weights={weights} onWeightsChange={setWeights} />
+      </div>
 
       <div
         style={{
-          marginBottom: "16px",
-          padding: "12px",
-          backgroundColor: "#e3f2fd",
-          borderRadius: "4px",
-          border: "1px solid #bbdefb",
+          flex: "1 1 auto",
+          overflow: "hidden",
+          paddingLeft: "20px",
+          paddingRight: "20px",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <strong>Scoring Guide:</strong>
-        <span style={{ color: "#4CAF50", marginLeft: "8px" }}>
-          ■ High (8.0+)
-        </span>
-        <span style={{ color: "#FF9800", marginLeft: "8px" }}>
-          ■ Medium (6.0-7.9)
-        </span>
-        <span style={{ color: "#F44336", marginLeft: "8px" }}>
-          ■ Low (&lt;6.0)
-        </span>
-        <span style={{ marginLeft: "16px", fontStyle: "italic" }}>
-          Note: Clinical Risk is inverted (lower scores are better)
-        </span>
+        <DrugRepurposingTable data={weightedData} />
       </div>
-
-      <AdvancedOptions weights={weights} onWeightsChange={setWeights} />
-
-      <DrugRepurposingTable data={weightedData} />
 
       <footer
         style={{
-          marginTop: "24px",
-          padding: "16px",
+          flex: "0 0 auto",
+          padding: "16px 20px",
           backgroundColor: "#f5f5f5",
-          borderRadius: "4px",
           fontSize: "14px",
           color: "#666",
+          borderTop: "1px solid #ddd",
         }}
       >
         <p style={{ margin: "0 0 8px 0" }}>

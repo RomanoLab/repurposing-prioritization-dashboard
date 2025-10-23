@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { createRoot } from "react-dom/client";
 import { Grid } from "@vaadin/react-components/Grid.js";
 import { GridColumn } from "@vaadin/react-components/GridColumn.js";
 import { GridSortColumn } from "@vaadin/react-components/GridSortColumn.js";
 import { TextField } from "@vaadin/react-components/TextField.js";
+import DrugStructure from "./DrugStructure";
 import type { DrugDiseasePair } from "../types/DrugDiseasePair";
 
 interface DrugRepurposingTableProps {
@@ -12,7 +14,7 @@ interface DrugRepurposingTableProps {
 const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
   data,
 }) => {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [drugFilter, setDrugFilter] = useState("");
   const [diseaseFilter, setDiseaseFilter] = useState("");
   const gridRef = useRef<any>(null);
@@ -30,13 +32,11 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
   }, [data, drugFilter, diseaseFilter]);
 
   const toggleExpanded = (item: DrugDiseasePair) => {
-    const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(item.id)) {
-      newExpanded.delete(item.id);
+    if (expandedItemId === item.id) {
+      setExpandedItemId(null);
     } else {
-      newExpanded.add(item.id);
+      setExpandedItemId(item.id);
     }
-    setExpandedItems(newExpanded);
   };
 
   useEffect(() => {
@@ -49,7 +49,7 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
 
       grid.rowDetailsRenderer = (root: any, _column: any, model: any) => {
         const item = model.item as DrugDiseasePair;
-        if (expandedItems.has(item.id)) {
+        if (expandedItemId === item.id) {
           const detailsDiv = document.createElement("div");
           detailsDiv.style.cssText =
             "padding: 16px 24px; background-color: #f8f9fa; border-top: 1px solid #dee2e6; border-bottom: 1px solid #dee2e6; margin: 0; width: 100%;";
@@ -73,16 +73,45 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
             "font-size: 12px; color: #666; font-family: monospace; margin-left: auto;";
           identifiersDiv.innerHTML = `<div>NDC: ${item.drugNdcCode}</div><div>Disease: ${item.diseaseOntologyTerm}</div>`;
 
+          headerDiv.appendChild(title);
+          headerDiv.appendChild(badge);
+          headerDiv.appendChild(identifiersDiv);
+          detailsDiv.appendChild(headerDiv);
+
+          // Content container with structure and narrative side by side
+          const contentDiv = document.createElement("div");
+          contentDiv.style.cssText =
+            "display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;";
+
+          // Drug structure container (only if CID is available)
+          if (item.pubchemCid) {
+            const structureContainer = document.createElement("div");
+            structureContainer.style.cssText = "flex-shrink: 0;";
+            contentDiv.appendChild(structureContainer);
+
+            // Render React component into the structure container using createRoot
+            const structureRoot = createRoot(structureContainer);
+            structureRoot.render(
+              React.createElement(DrugStructure, {
+                pubchemCid: item.pubchemCid,
+                drugName: item.drugName,
+              }),
+            );
+          }
+
+          // Narrative text
+          const narrativeDiv = document.createElement("div");
+          narrativeDiv.style.cssText = "flex: 1; min-width: 300px;";
+
           const description = document.createElement("p");
           description.style.cssText =
             "margin: 0; line-height: 1.6; color: #495057; font-size: 14px;";
           description.textContent = item.narrative;
 
-          headerDiv.appendChild(title);
-          headerDiv.appendChild(badge);
-          headerDiv.appendChild(identifiersDiv);
-          detailsDiv.appendChild(headerDiv);
-          detailsDiv.appendChild(description);
+          narrativeDiv.appendChild(description);
+          contentDiv.appendChild(narrativeDiv);
+
+          detailsDiv.appendChild(contentDiv);
 
           root.innerHTML = "";
           root.appendChild(detailsDiv);
@@ -91,9 +120,9 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
         }
       };
 
-      grid.detailsOpenedItems = Array.from(expandedItems)
-        .map((id) => filteredData.find((item) => item.id === id))
-        .filter(Boolean);
+      grid.detailsOpenedItems = expandedItemId
+        ? filteredData.filter((item) => item.id === expandedItemId)
+        : [];
 
       grid.addEventListener("active-item-changed", (e: any) => {
         const item = e.detail.value as DrugDiseasePair;
@@ -150,7 +179,7 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
         });
       }, 100);
     }
-  }, [expandedItems, filteredData]);
+  }, [expandedItemId, filteredData]);
 
   const formatScore = (value: number) => value.toFixed(1);
 
@@ -166,7 +195,14 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
   };
 
   return (
-    <div style={{ width: "100%", overflow: "auto" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -174,6 +210,7 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
           marginBottom: "16px",
           alignItems: "center",
           flexWrap: "wrap",
+          flex: "0 0 auto",
         }}
       >
         <TextField
@@ -222,51 +259,65 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
         theme="row-stripes"
         style={{
           width: "100%",
+          height: "100%",
           cursor: "pointer",
         }}
         multiSort={true}
       >
+        <GridColumn
+          width="50px"
+          flexGrow={0}
+          frozen
+          renderer={({ item }: { item: DrugDiseasePair }) => (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "14px",
+                  color: expandedItemId === item.id ? "#1976d2" : "#666",
+                  fontWeight: "bold",
+                }}
+              >
+                {expandedItemId === item.id ? "▼" : "▶"}
+              </span>
+            </div>
+          )}
+        />
         <GridColumn
           path="drugName"
           header="Drug"
           width="160px"
           flexGrow={2}
           renderer={({ item }: { item: DrugDiseasePair }) => (
-            <div
-              style={{
-                fontWeight: "500",
-                color: expandedItems.has(item.id) ? "#1976d2" : "#333",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <span style={{ marginRight: "8px", fontSize: "12px" }}>
-                {expandedItems.has(item.id) ? "▼" : "▶"}
-              </span>
+            <div>
               <div>
-                <div>
-                  {drugFilter ? (
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: item.drugName.replace(
-                          new RegExp(`(${drugFilter})`, "gi"),
-                          '<mark style="background-color: #ffeb3b; padding: 1px 2px; border-radius: 2px;">$1</mark>',
-                        ),
-                      }}
-                    />
-                  ) : (
-                    item.drugName
-                  )}
-                </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "#666",
-                    fontFamily: "monospace",
-                  }}
-                >
-                  NDC: {item.drugNdcCode}
-                </div>
+                {drugFilter ? (
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: item.drugName.replace(
+                        new RegExp(`(${drugFilter})`, "gi"),
+                        '<mark style="background-color: #ffeb3b; padding: 1px 2px; border-radius: 2px;">$1</mark>',
+                      ),
+                    }}
+                  />
+                ) : (
+                  item.drugName
+                )}
+              </div>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "#666",
+                  fontFamily: "monospace",
+                }}
+              >
+                NDC: {item.drugNdcCode}
               </div>
             </div>
           )}
@@ -309,30 +360,39 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
           width="120px"
           flexGrow={0}
           direction="desc"
-          renderer={({ item }: { item: DrugDiseasePair }) => (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "6px 12px",
-                backgroundColor: "#e8f5e8",
-                borderRadius: "8px",
-                border: "2px solid #4CAF50",
-                margin: "2px 0",
-              }}
-            >
-              <span
+          renderer={({ item }: { item: DrugDiseasePair }) => {
+            const score = item.compositePrioritizationScore;
+            const borderColor = getScoreColor(score);
+            const backgroundColor =
+              score >= 8 ? "#e8f5e8" : score >= 6 ? "#fff3e0" : "#ffebee";
+            const textColor =
+              score >= 8 ? "#1b5e20" : score >= 6 ? "#e65100" : "#b71c1c";
+
+            return (
+              <div
                 style={{
-                  color: "#1b5e20",
-                  fontWeight: "bold",
-                  fontSize: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "6px 12px",
+                  backgroundColor,
+                  borderRadius: "8px",
+                  border: `2px solid ${borderColor}`,
+                  margin: "2px 0",
                 }}
               >
-                {formatScore(item.compositePrioritizationScore)}
-              </span>
-            </div>
-          )}
+                <span
+                  style={{
+                    color: textColor,
+                    fontWeight: "bold",
+                    fontSize: "16px",
+                  }}
+                >
+                  {formatScore(score)}
+                </span>
+              </div>
+            );
+          }}
         />
         <GridSortColumn
           path="biologicalSuitability"
