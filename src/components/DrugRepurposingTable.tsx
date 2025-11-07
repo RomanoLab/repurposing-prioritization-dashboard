@@ -6,6 +6,7 @@ import { GridSortColumn } from "@vaadin/react-components/GridSortColumn.js";
 import { TextField } from "@vaadin/react-components/TextField.js";
 import DrugStructure from "./DrugStructure";
 import type { DrugDiseasePair } from "../types/DrugDiseasePair";
+import schema from "../schema/drugRepurposingSchema.json";
 
 interface DrugRepurposingTableProps {
   data: DrugDiseasePair[];
@@ -17,9 +18,13 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [drugFilter, setDrugFilter] = useState("");
   const [diseaseFilter, setDiseaseFilter] = useState("");
+  const [showColumnInfo, setShowColumnInfo] = useState(false);
   const gridRef = useRef<any>(null);
   const structureContainersRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const structureRootsRef = useRef<Map<string, any>>(new Map());
+
+  // Get schema descriptions
+  const properties = schema.definitions.drugDiseasePair.properties;
 
   const filteredData = useMemo(() => {
     return data.filter((item) => {
@@ -217,6 +222,85 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
         overflow: "hidden",
       }}
     >
+      {/* Column Descriptions Info Panel */}
+      <div
+        style={{
+          marginBottom: "12px",
+          border: "1px solid #ddd",
+          borderRadius: "4px",
+          backgroundColor: "#f8f9fa",
+        }}
+      >
+        <button
+          onClick={() => setShowColumnInfo(!showColumnInfo)}
+          style={{
+            width: "100%",
+            padding: "10px 16px",
+            backgroundColor: "transparent",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontSize: "14px",
+            fontWeight: "500",
+            color: "#333",
+          }}
+        >
+          <span style={{ fontSize: "12px" }}>
+            {showColumnInfo ? "▼" : "▶"}
+          </span>
+          Column Descriptions
+        </button>
+        {showColumnInfo && (
+          <div
+            style={{
+              padding: "0 16px 16px 16px",
+              fontSize: "13px",
+              lineHeight: "1.6",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "auto 1fr",
+                gap: "8px 16px",
+              }}
+            >
+              <strong>Drug:</strong>
+              <span>{properties.drugName.description}</span>
+
+              <strong>Disease:</strong>
+              <span>{properties.diseaseName.description}</span>
+
+              <strong>Priority:</strong>
+              <span>{properties.compositePrioritizationScore.description}</span>
+
+              <strong>Biological:</strong>
+              <span>{properties.biologicalSuitability.description}</span>
+
+              <strong>Medical Need:</strong>
+              <span>{properties.unmetMedicalNeed.description}</span>
+
+              <strong>Economic:</strong>
+              <span>{properties.economicSuitability.description}</span>
+
+              <strong>Market:</strong>
+              <span>{properties.marketSize.description}</span>
+
+              <strong>Competitive:</strong>
+              <span>{properties.competitiveAdvantage.description}</span>
+
+              <strong>Regulatory:</strong>
+              <span>{properties.regulatoryFeasibility.description}</span>
+
+              <strong>Risk:</strong>
+              <span>{properties.clinicalRisk.description}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div
         style={{
           display: "flex",
