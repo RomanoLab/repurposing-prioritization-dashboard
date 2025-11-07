@@ -4,6 +4,7 @@ import AdvancedOptions, {
   DEFAULT_WEIGHTS,
   type ComponentWeights,
 } from "./AdvancedOptions";
+import FAQModal from "./FAQModal";
 import { applyWeightsToPairs } from "../utils/priorityCalculation";
 import { validateDrugRepurposingData } from "../utils/dataValidator";
 import type { DrugDiseasePair } from "../types/DrugDiseasePair";
@@ -13,6 +14,7 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weights, setWeights] = useState<ComponentWeights>(DEFAULT_WEIGHTS);
+  const [isFAQOpen, setIsFAQOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -134,6 +136,31 @@ const Dashboard: React.FC = () => {
           </div>
         </header>
 
+        <div style={{ marginBottom: "16px" }}>
+          <button
+            onClick={() => setIsFAQOpen(true)}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#1976d2",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              fontSize: "14px",
+              fontWeight: "500",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            }}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.backgroundColor = "#1565c0")
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.backgroundColor = "#1976d2")
+            }
+          >
+            Frequently Asked Questions
+          </button>
+        </div>
+
         <div
           style={{
             marginBottom: "16px",
@@ -199,6 +226,8 @@ const Dashboard: React.FC = () => {
           NUMBER, ETC.]).
         </p>
       </footer>
+
+      <FAQModal isOpen={isFAQOpen} onClose={() => setIsFAQOpen(false)} />
     </div>
   );
 };

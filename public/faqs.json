@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1",
+    "question": "What is drug repurposing?",
+    "answer": "Drug repurposing is the process of identifying new therapeutic uses for existing approved drugs. This approach can significantly reduce the time and cost of drug development since the safety profiles of these drugs are already well-established."
+  },
+  {
+    "id": "2",
+    "question": "How is the composite prioritization score calculated?",
+    "answer": "The composite prioritization score is a weighted combination of all component scores including biological suitability, unmet medical need, economic suitability, market size, competitive advantage, regulatory feasibility, and clinical risk. Each component contributes to the overall assessment of a drug-disease pair's repurposing potential."
+  },
+  {
+    "id": "3",
+    "question": "What does the color coding mean?",
+    "answer": "Scores are color-coded to help quickly identify promising candidates: Green (8.0-10.0) indicates high scores and strong potential, Orange (6.0-7.9) indicates moderate scores, and Red (below 6.0) indicates low scores. Note that for Clinical Risk, lower scores are better, so the color coding is inverted."
+  },
+  {
+    "id": "4",
+    "question": "How should I interpret the clinical risk score?",
+    "answer": "Unlike other metrics, clinical risk uses an inverted scale where lower scores are better. A low clinical risk score indicates fewer safety concerns and lower probability of trial failure, making the drug-disease pair more attractive for repurposing."
+  },
+  {
+    "id": "5",
+    "question": "Can I export or save the data?",
+    "answer": "Currently, you can use the search and filter functionality to narrow down candidates. For exporting data, you can use your browser's native features or contact the development team for custom export options."
+  },
+  {
+    "id": "6",
+    "question": "What do the NDC codes and disease ontology terms mean?",
+    "answer": "NDC (National Drug Code) is a unique identifier for drugs in the United States. Disease ontology terms (like MONDO IDs) are standardized identifiers from medical ontologies that ensure consistent disease classification across different databases and research studies."
+  },
+  {
+    "id": "7",
+    "question": "How often is the data updated?",
+    "answer": "The data is updated periodically based on new research findings, clinical trial results, and market analyses. Check with your data provider or administrator for specific update schedules."
+  },
+  {
+    "id": "8",
+    "question": "What should I do if I find a promising candidate?",
+    "answer": "If you identify a promising drug-disease pair, click on the row to expand the detailed narrative. Review the analysis carefully and consult with medical and research professionals before pursuing any repurposing opportunity. Additional due diligence and validation studies are typically required."
+  }
+]
