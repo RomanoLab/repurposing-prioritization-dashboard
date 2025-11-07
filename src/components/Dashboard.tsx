@@ -132,17 +132,6 @@ const Dashboard: React.FC = () => {
               Click column headers to sort data.
             </p>
           </div>
-          <div style={{ flexShrink: 0 }}>
-            <img
-              src="/everycure_blue@4x.webp"
-              alt="Every Cure Logo"
-              style={{
-                height: "60px",
-                width: "auto",
-                objectFit: "contain",
-              }}
-            />
-          </div>
         </header>
 
         <div
