@@ -5,6 +5,11 @@
     "answer": "Drug repurposing is the process of identifying new therapeutic uses for existing approved drugs. This approach can significantly reduce the time and cost of drug development since the safety profiles of these drugs are already well-established."
   },
   {
+    "id": "1.5",
+    "question": "How did you choose which drug/disease pairs to include?",
+    "answer": "We're continually adding new drug/disease pairs to the dashboard as we compute them. Initially, we started with a list of approved drugs (defined by DrugBank) and known diseases (as defined by MONDO), and looped over both lists, computing each pair in sequence. We are assessing techniques for prioritizing pairs before computing their scores (e.g., by extracting information from biomedical knowledge graphs) and will update the information on this page as these new features are deployed."
+  },
+  {
     "id": "2",
     "question": "How is the composite prioritization score calculated?",
     "answer": "The composite prioritization score is a weighted combination of all component scores including biological suitability, unmet medical need, economic suitability, market size, competitive advantage, regulatory feasibility, and clinical risk. Each component contributes to the overall assessment of a drug-disease pair's repurposing potential."
