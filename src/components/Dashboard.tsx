@@ -5,22 +5,38 @@ import AdvancedOptions, {
   type ComponentWeights,
 } from "./AdvancedOptions";
 import FAQModal from "./FAQModal";
+import AboutModal from "./AboutModal";
 import { applyWeightsToPairs } from "../utils/priorityCalculation";
 import { validateDrugRepurposingData } from "../utils/dataValidator";
 import type { DrugDiseasePair } from "../types/DrugDiseasePair";
+import type { ScoreConfig } from "../types/ScoreConfig";
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DrugDiseasePair[]>([]);
+  const [scoreConfig, setScoreConfig] = useState<ScoreConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weights, setWeights] = useState<ComponentWeights>(DEFAULT_WEIGHTS);
   const [isFAQOpen, setIsFAQOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/sample-data.json");
+
+        // Load score config
+        const configResponse = await fetch("/scoreConfig.json");
+        if (!configResponse.ok) {
+          throw new Error(
+            `Failed to load score config: ${configResponse.statusText}`,
+          );
+        }
+        const configData = await configResponse.json();
+        setScoreConfig(configData);
+
+        // Load data
+        const response = await fetch("/output2.json");
         if (!response.ok) {
           throw new Error(`Failed to load data: ${response.statusText}`);
         }
@@ -133,10 +149,48 @@ const Dashboard: React.FC = () => {
               Click anywhere on a row to expand and view detailed narratives.
               Click column headers to sort data.
             </p>
+            <p
+              style={{
+                margin: 0,
+                color: "#666",
+                fontSize: "16px",
+                lineHeight: "1.5",
+              }}
+            >
+              The Drug Repurposing Prioritization Dashboard is created and
+              maintained by the{" "}
+              <a href="https://www.med.upenn.edu/CSTL/">
+                Center for Cytokine Storm Treatment and Laboratory
+              </a>{" "}
+              and the <a href="https://romanolab.org">Romano Lab</a> at the
+              Unviersity of Pennsylvania's Perelman School of Medicine.
+            </p>
           </div>
         </header>
 
-        <div style={{ marginBottom: "16px" }}>
+        <div style={{ marginBottom: "16px", display: "flex", gap: "12px" }}>
+          <button
+            onClick={() => setIsAboutOpen(true)}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#1976d2",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              fontSize: "14px",
+              fontWeight: "500",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            }}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.backgroundColor = "#1565c0")
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.backgroundColor = "#1976d2")
+            }
+          >
+            About this application
+          </button>
           <button
             onClick={() => setIsFAQOpen(true)}
             style={{
@@ -158,6 +212,60 @@ const Dashboard: React.FC = () => {
             }
           >
             Frequently Asked Questions
+          </button>
+          <button
+            onClick={() =>
+              window.open(
+                "https://github.com/RomanoLab/repurposing-prioritization-dashboard",
+                "_blank",
+              )
+            }
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#1976d2",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              fontSize: "14px",
+              fontWeight: "500",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            }}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.backgroundColor = "#1565c0")
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.backgroundColor = "#1976d2")
+            }
+          >
+            Github link
+          </button>
+          <button
+            onClick={() =>
+              window.open(
+                "https://upenn.box.com/v/repurposing-scoring-system",
+                "_blank",
+              )
+            }
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#1976d2",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              fontSize: "14px",
+              fontWeight: "500",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            }}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.backgroundColor = "#1565c0")
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.backgroundColor = "#1976d2")
+            }
+          >
+            Download raw data
           </button>
         </div>
 
@@ -198,7 +306,9 @@ const Dashboard: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        <DrugRepurposingTable data={weightedData} />
+        {scoreConfig && (
+          <DrugRepurposingTable data={weightedData} scoreConfig={scoreConfig} />
+        )}
       </div>
 
       <footer
@@ -222,11 +332,12 @@ const Dashboard: React.FC = () => {
         </p>
         <p style={{ margin: 0 }}>
           <strong>Funding Support:</strong> Funding for the Drug Repurposing
-          Prioritization Dashboard is provided by Arnold Ventures ([GRANT
-          NUMBER, ETC.]).
+          Prioritization Dashboard is provided by a research grant awarded by
+          Arnold Ventures.
         </p>
       </footer>
 
+      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
       <FAQModal isOpen={isFAQOpen} onClose={() => setIsFAQOpen(false)} />
     </div>
   );

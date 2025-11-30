@@ -35,18 +35,28 @@ const invalidDataExamples = {
       {
         id: "1",
         drugName: "Test Drug",
-        // Missing drugNdcCode
+        // Missing drugNdcCode (required field)
         diseaseName: "Test Disease",
         diseaseOntologyTerm: "MONDO:0000001",
-        biologicalSuitability: 7.0,
-        unmetMedicalNeed: 8.0,
+        compositePrioritizationScore: 7.0,
+        narrative: "Test narrative",
+      },
+    ],
+  },
+  partialComponentScores: {
+    drugDiseasePairs: [
+      {
+        id: "1",
+        drugName: "Test Drug",
+        drugNdcCode: "0093-1115-01",
+        diseaseName: "Test Disease",
+        diseaseOntologyTerm: "MONDO:0000001",
+        // Only some component scores - this should be VALID
         economicSuitability: 6.0,
-        marketSize: 7.5,
-        competitiveAdvantage: 6.5,
         regulatoryFeasibility: 7.0,
         clinicalRisk: 4.0,
         compositePrioritizationScore: 7.0,
-        narrative: "Test narrative",
+        narrative: "Test narrative with partial scores",
       },
     ],
   },
@@ -135,15 +145,26 @@ const invalidDataExamples = {
 
 console.log("=== Testing Data Validator ===\n");
 
-// Test valid data
-console.log("1. Testing VALID data:");
+// Test valid data with all scores
+console.log("1. Testing VALID data (all scores):");
 const validResult = validateDrugRepurposingData(validData);
 console.log(`   Valid: ${validResult.valid}`);
 console.log(`   Errors: ${validResult.errors.length}\n`);
 
+// Test valid data with partial scores
+console.log("2. Testing VALID data (partial scores):");
+const partialScoresResult = validateDrugRepurposingData(
+  invalidDataExamples.partialComponentScores,
+);
+console.log(`   Valid: ${partialScoresResult.valid}`);
+console.log(`   Errors: ${partialScoresResult.errors.length}\n`);
+
 // Test invalid data
-Object.entries(invalidDataExamples).forEach(([testName, testData], index) => {
-  console.log(`${index + 2}. Testing INVALID data (${testName}):`);
+const invalidTests = Object.entries(invalidDataExamples).filter(
+  ([testName]) => testName !== "partialComponentScores",
+);
+invalidTests.forEach(([testName, testData], index) => {
+  console.log(`${index + 3}. Testing INVALID data (${testName}):`);
   const result = validateDrugRepurposingData(testData);
   console.log(`   Valid: ${result.valid}`);
   console.log(`   Errors: ${result.errors.length}`);
@@ -157,6 +178,6 @@ Object.entries(invalidDataExamples).forEach(([testName, testData], index) => {
 
 console.log("\n=== Error Report Example ===\n");
 const invalidResult = validateDrugRepurposingData(
-  invalidDataExamples.missingRequiredField
+  invalidDataExamples.missingRequiredField,
 );
 console.log(dataValidator.generateErrorReport(invalidResult.errors));

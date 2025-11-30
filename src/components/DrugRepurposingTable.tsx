@@ -6,14 +6,17 @@ import { GridSortColumn } from "@vaadin/react-components/GridSortColumn.js";
 import { TextField } from "@vaadin/react-components/TextField.js";
 import DrugStructure from "./DrugStructure";
 import type { DrugDiseasePair } from "../types/DrugDiseasePair";
+import type { ScoreConfig } from "../types/ScoreConfig";
 import schema from "../schema/drugRepurposingSchema.json";
 
 interface DrugRepurposingTableProps {
   data: DrugDiseasePair[];
+  scoreConfig: ScoreConfig;
 }
 
 const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
   data,
+  scoreConfig,
 }) => {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [drugFilter, setDrugFilter] = useState("");
@@ -68,7 +71,7 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
           const title = document.createElement("h4");
           title.style.cssText =
             "margin: 0; color: #1976d2; font-size: 16px; font-weight: 600;";
-          title.textContent = `${item.drugName} for ${item.diseaseName}`;
+          title.textContent = `${capitalizeDrugName(item.drugName)} for ${item.diseaseName}`;
 
           const badge = document.createElement("span");
           badge.style.cssText =
@@ -109,7 +112,7 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
               structureRoot.render(
                 React.createElement(DrugStructure, {
                   pubchemCid: item.pubchemCid,
-                  drugName: item.drugName,
+                  drugName: capitalizeDrugName(item.drugName),
                 }),
               );
             }
@@ -124,7 +127,7 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
 
           const description = document.createElement("p");
           description.style.cssText =
-            "margin: 0; line-height: 1.6; color: #495057; font-size: 14px;";
+            "margin: 0; line-height: 1.6; color: #495057; font-size: 14px; white-space: pre-wrap;";
           description.textContent = item.narrative;
 
           narrativeDiv.appendChild(description);
@@ -200,9 +203,21 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
     }
   }, [expandedItemId, filteredData]);
 
-  const formatScore = (value: number) => value.toFixed(1);
+  const capitalizeDrugName = (name: string) => {
+    const words = name.split(/\s+/);
+    if (words.length === 0) return name;
+    words[0] =
+      words[0].charAt(0).toUpperCase() + words[0].slice(1).toLowerCase();
+    return words.join(" ");
+  };
 
-  const getScoreColor = (value: number) => {
+  const formatScore = (value: number | undefined) => {
+    if (value === undefined || value === null) return "N/A";
+    return value.toFixed(1);
+  };
+
+  const getScoreColor = (value: number | undefined) => {
+    if (value === undefined || value === null) return "#999";
     if (value >= 8) return "#4CAF50";
     if (value >= 6) return "#FF9800";
     return "#F44336";
@@ -247,9 +262,7 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
             color: "#333",
           }}
         >
-          <span style={{ fontSize: "12px" }}>
-            {showColumnInfo ? "▼" : "▶"}
-          </span>
+          <span style={{ fontSize: "12px" }}>{showColumnInfo ? "▼" : "▶"}</span>
           Column Descriptions
         </button>
         {showColumnInfo && (
@@ -276,26 +289,12 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
               <strong>Priority:</strong>
               <span>{properties.compositePrioritizationScore.description}</span>
 
-              <strong>Biological:</strong>
-              <span>{properties.biologicalSuitability.description}</span>
-
-              <strong>Medical Need:</strong>
-              <span>{properties.unmetMedicalNeed.description}</span>
-
-              <strong>Economic:</strong>
-              <span>{properties.economicSuitability.description}</span>
-
-              <strong>Market:</strong>
-              <span>{properties.marketSize.description}</span>
-
-              <strong>Competitive:</strong>
-              <span>{properties.competitiveAdvantage.description}</span>
-
-              <strong>Regulatory:</strong>
-              <span>{properties.regulatoryFeasibility.description}</span>
-
-              <strong>Risk:</strong>
-              <span>{properties.clinicalRisk.description}</span>
+              {scoreConfig.scoreColumns.map((col) => (
+                <React.Fragment key={col.key}>
+                  <strong>{col.displayName}:</strong>
+                  <span>{col.description}</span>
+                </React.Fragment>
+              ))}
             </div>
           </div>
         )}
@@ -392,33 +391,36 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
           header="Drug"
           width="160px"
           flexGrow={2}
-          renderer={({ item }: { item: DrugDiseasePair }) => (
-            <div>
+          renderer={({ item }: { item: DrugDiseasePair }) => {
+            const capitalizedName = capitalizeDrugName(item.drugName);
+            return (
               <div>
-                {drugFilter ? (
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: item.drugName.replace(
-                        new RegExp(`(${drugFilter})`, "gi"),
-                        '<mark style="background-color: #ffeb3b; padding: 1px 2px; border-radius: 2px;">$1</mark>',
-                      ),
-                    }}
-                  />
-                ) : (
-                  item.drugName
-                )}
+                <div>
+                  {drugFilter ? (
+                    <span
+                      dangerouslySetInnerHTML={{
+                        __html: capitalizedName.replace(
+                          new RegExp(`(${drugFilter})`, "gi"),
+                          '<mark style="background-color: #ffeb3b; padding: 1px 2px; border-radius: 2px;">$1</mark>',
+                        ),
+                      }}
+                    />
+                  ) : (
+                    capitalizedName
+                  )}
+                </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "#666",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  NDC: {item.drugNdcCode}
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "#666",
-                  fontFamily: "monospace",
-                }}
-              >
-                NDC: {item.drugNdcCode}
-              </div>
-            </div>
-          )}
+            );
+          }}
         />
         <GridSortColumn
           path="diseaseName"
@@ -492,118 +494,35 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
             );
           }}
         />
-        <GridSortColumn
-          path="biologicalSuitability"
-          header="Biological"
-          width="100px"
-          flexGrow={1}
-          renderer={({ item }: { item: DrugDiseasePair }) => (
-            <span
-              style={{
-                color: getScoreColor(item.biologicalSuitability),
-                fontWeight: "bold",
-              }}
-            >
-              {formatScore(item.biologicalSuitability)}
-            </span>
-          )}
-        />
-        <GridSortColumn
-          path="unmetMedicalNeed"
-          header="Medical Need"
-          width="110px"
-          flexGrow={1}
-          renderer={({ item }: { item: DrugDiseasePair }) => (
-            <span
-              style={{
-                color: getScoreColor(item.unmetMedicalNeed),
-                fontWeight: "bold",
-              }}
-            >
-              {formatScore(item.unmetMedicalNeed)}
-            </span>
-          )}
-        />
-        <GridSortColumn
-          path="economicSuitability"
-          header="Economic"
-          width="100px"
-          flexGrow={1}
-          renderer={({ item }: { item: DrugDiseasePair }) => (
-            <span
-              style={{
-                color: getScoreColor(item.economicSuitability),
-                fontWeight: "bold",
-              }}
-            >
-              {formatScore(item.economicSuitability)}
-            </span>
-          )}
-        />
-        <GridSortColumn
-          path="marketSize"
-          header="Market"
-          width="80px"
-          flexGrow={1}
-          renderer={({ item }: { item: DrugDiseasePair }) => (
-            <span
-              style={{
-                color: getScoreColor(item.marketSize),
-                fontWeight: "bold",
-              }}
-            >
-              {formatScore(item.marketSize)}
-            </span>
-          )}
-        />
-        <GridSortColumn
-          path="competitiveAdvantage"
-          header="Competitive"
-          width="110px"
-          flexGrow={1}
-          renderer={({ item }: { item: DrugDiseasePair }) => (
-            <span
-              style={{
-                color: getScoreColor(item.competitiveAdvantage),
-                fontWeight: "bold",
-              }}
-            >
-              {formatScore(item.competitiveAdvantage)}
-            </span>
-          )}
-        />
-        <GridSortColumn
-          path="regulatoryFeasibility"
-          header="Regulatory"
-          width="100px"
-          flexGrow={1}
-          renderer={({ item }: { item: DrugDiseasePair }) => (
-            <span
-              style={{
-                color: getScoreColor(item.regulatoryFeasibility),
-                fontWeight: "bold",
-              }}
-            >
-              {formatScore(item.regulatoryFeasibility)}
-            </span>
-          )}
-        />
-        <GridSortColumn
-          path="clinicalRisk"
-          header="Risk"
-          width="70px"
-          flexGrow={1}
-          renderer={({ item }: { item: DrugDiseasePair }) => (
-            <span
-              style={{
-                color: getScoreColor(10 - item.clinicalRisk),
-                fontWeight: "bold",
-              }}
-            >
-              {formatScore(item.clinicalRisk)}
-            </span>
-          )}
-        />
+        {scoreConfig.scoreColumns.map((col) => (
+          <GridSortColumn
+            key={col.key}
+            path={col.key}
+            header={col.displayName}
+            width={col.width}
+            flexGrow={col.flexGrow}
+            renderer={({ item }: { item: DrugDiseasePair }) => {
+              const value = item[col.key];
+              const displayValue =
+                value !== undefined && value !== null
+                  ? col.isInverted
+                    ? 10 - value
+                    : value
+                  : undefined;
+
+              return (
+                <span
+                  style={{
+                    color: getScoreColor(displayValue),
+                    fontWeight: "bold",
+                  }}
+                >
+                  {formatScore(value)}
+                </span>
+              );
+            }}
+          />
+        ))}
       </Grid>
     </div>
   );

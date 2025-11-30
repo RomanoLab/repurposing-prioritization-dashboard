@@ -25,13 +25,6 @@
         "drugNdcCode",
         "diseaseName",
         "diseaseOntologyTerm",
-        "biologicalSuitability",
-        "unmetMedicalNeed",
-        "economicSuitability",
-        "marketSize",
-        "competitiveAdvantage",
-        "regulatoryFeasibility",
-        "clinicalRisk",
         "compositePrioritizationScore",
         "narrative"
       ],

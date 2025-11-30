@@ -5,13 +5,13 @@ export interface DrugDiseasePair {
   pubchemCid?: string;
   diseaseName: string;
   diseaseOntologyTerm: string;
-  biologicalSuitability: number;
-  unmetMedicalNeed: number;
-  economicSuitability: number;
-  marketSize: number;
-  competitiveAdvantage: number;
-  regulatoryFeasibility: number;
-  clinicalRisk: number;
+  biologicalSuitability?: number;
+  unmetMedicalNeed?: number;
+  economicSuitability?: number;
+  marketSize?: number;
+  competitiveAdvantage?: number;
+  regulatoryFeasibility?: number;
+  clinicalRisk?: number;
   compositePrioritizationScore: number;
   narrative: string;
 }

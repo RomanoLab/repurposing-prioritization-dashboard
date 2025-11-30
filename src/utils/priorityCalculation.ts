@@ -6,6 +6,7 @@ import type { ComponentWeights } from "../components/AdvancedOptions";
  *
  * The score is calculated as a weighted average of all component scores.
  * Clinical risk is inverted (10 - clinicalRisk) so that lower risk is better.
+ * Only available (non-null/undefined) scores are included in the calculation.
  *
  * @param item - The drug-disease pair
  * @param weights - The weights for each component (0-1 range)
@@ -13,30 +14,31 @@ import type { ComponentWeights } from "../components/AdvancedOptions";
  */
 export function calculateWeightedPriority(
   item: DrugDiseasePair,
-  weights: ComponentWeights
+  weights: ComponentWeights,
 ): number {
-  // Invert clinical risk so lower values are better
-  const invertedClinicalRisk = 10 - item.clinicalRisk;
+  let weightedSum = 0;
+  let totalWeight = 0;
 
-  // Calculate weighted sum
-  const weightedSum =
-    item.biologicalSuitability * weights.biologicalSuitability +
-    item.unmetMedicalNeed * weights.unmetMedicalNeed +
-    item.economicSuitability * weights.economicSuitability +
-    item.marketSize * weights.marketSize +
-    item.competitiveAdvantage * weights.competitiveAdvantage +
-    item.regulatoryFeasibility * weights.regulatoryFeasibility +
-    invertedClinicalRisk * weights.clinicalRisk;
+  // Helper to add a component if it exists
+  const addComponent = (
+    value: number | undefined,
+    weight: number,
+    invert = false,
+  ) => {
+    if (value !== undefined && value !== null) {
+      const actualValue = invert ? 10 - value : value;
+      weightedSum += actualValue * weight;
+      totalWeight += weight;
+    }
+  };
 
-  // Calculate total weight (sum of all weights)
-  const totalWeight =
-    weights.biologicalSuitability +
-    weights.unmetMedicalNeed +
-    weights.economicSuitability +
-    weights.marketSize +
-    weights.competitiveAdvantage +
-    weights.regulatoryFeasibility +
-    weights.clinicalRisk;
+  addComponent(item.biologicalSuitability, weights.biologicalSuitability);
+  addComponent(item.unmetMedicalNeed, weights.unmetMedicalNeed);
+  addComponent(item.economicSuitability, weights.economicSuitability);
+  addComponent(item.marketSize, weights.marketSize);
+  addComponent(item.competitiveAdvantage, weights.competitiveAdvantage);
+  addComponent(item.regulatoryFeasibility, weights.regulatoryFeasibility);
+  addComponent(item.clinicalRisk, weights.clinicalRisk, true);
 
   // Return weighted average (avoid division by zero)
   return totalWeight > 0 ? weightedSum / totalWeight : 0;
@@ -51,7 +53,7 @@ export function calculateWeightedPriority(
  */
 export function applyWeightsToPairs(
   data: DrugDiseasePair[],
-  weights: ComponentWeights
+  weights: ComponentWeights,
 ): DrugDiseasePair[] {
   return data.map((item) => ({
     ...item,

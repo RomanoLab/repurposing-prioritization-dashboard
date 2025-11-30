@@ -1,0 +1,26 @@
+{
+  "scoreColumns": [
+    {
+      "key": "economicSuitability",
+      "displayName": "Economic",
+      "description": "Economic Suitability Score",
+      "width": "100px",
+      "flexGrow": 1
+    },
+    {
+      "key": "regulatoryFeasibility",
+      "displayName": "Regulatory",
+      "description": "Regulatory Feasibility Score",
+      "width": "100px",
+      "flexGrow": 1
+    },
+    {
+      "key": "clinicalRisk",
+      "displayName": "Risk",
+      "description": "Clinical Risk Score (Lower is Better)",
+      "width": "70px",
+      "flexGrow": 1,
+      "isInverted": true
+    }
+  ]
+}
