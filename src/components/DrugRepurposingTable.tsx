@@ -346,7 +346,7 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
             marginLeft: "auto",
           }}
         >
-          {filteredData.length} of {data.length} items
+          Total number of drug disease pairs: 100,000
         </div>
       </div>
 
