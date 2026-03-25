@@ -11,6 +11,8 @@ import { validateDrugRepurposingData } from "../utils/dataValidator";
 import type { DrugDiseasePair } from "../types/DrugDiseasePair";
 import type { ScoreConfig } from "../types/ScoreConfig";
 
+const DATA_SOURCE = import.meta.env.VITE_DATA_SOURCE || "file";
+
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DrugDiseasePair[]>([]);
   const [scoreConfig, setScoreConfig] = useState<ScoreConfig | null>(null);
@@ -25,7 +27,7 @@ const Dashboard: React.FC = () => {
       try {
         setLoading(true);
 
-        // Load score config
+        // Load score config (needed in both modes)
         const configResponse = await fetch("/scoreConfig.json");
         if (!configResponse.ok) {
           throw new Error(
@@ -35,25 +37,27 @@ const Dashboard: React.FC = () => {
         const configData = await configResponse.json();
         setScoreConfig(configData);
 
-        // Load data
-        const response = await fetch("/output2.json");
-        if (!response.ok) {
-          throw new Error(`Failed to load data: ${response.statusText}`);
+        // In file mode, also load data from JSON
+        if (DATA_SOURCE === "file") {
+          const response = await fetch("/output2.json");
+          if (!response.ok) {
+            throw new Error(`Failed to load data: ${response.statusText}`);
+          }
+          const jsonData = await response.json();
+
+          const validationResult = validateDrugRepurposingData(jsonData);
+
+          if (!validationResult.valid) {
+            const errorMessages = validationResult.errors
+              .map((err) => `${err.path}: ${err.message}`)
+              .join("; ");
+            throw new Error(`Data validation failed: ${errorMessages}`);
+          }
+
+          console.log("✓ Data validation passed");
+          setData(validationResult.data!.drugDiseasePairs);
         }
-        const jsonData = await response.json();
 
-        // Validate the data against the schema
-        const validationResult = validateDrugRepurposingData(jsonData);
-
-        if (!validationResult.valid) {
-          const errorMessages = validationResult.errors
-            .map((err) => `${err.path}: ${err.message}`)
-            .join("; ");
-          throw new Error(`Data validation failed: ${errorMessages}`);
-        }
-
-        console.log("✓ Data validation passed");
-        setData(validationResult.data!.drugDiseasePairs);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
@@ -66,8 +70,9 @@ const Dashboard: React.FC = () => {
     loadData();
   }, []);
 
-  // Recalculate priority scores based on current weights
+  // Recalculate priority scores based on current weights (file mode only)
   const weightedData = useMemo(() => {
+    if (DATA_SOURCE !== "file") return data;
     return applyWeightsToPairs(data, weights);
   }, [data, weights]);
 
@@ -307,7 +312,11 @@ const Dashboard: React.FC = () => {
         }}
       >
         {scoreConfig && (
-          <DrugRepurposingTable data={weightedData} scoreConfig={scoreConfig} />
+          <DrugRepurposingTable
+            weights={weights}
+            scoreConfig={scoreConfig}
+            data={DATA_SOURCE === "file" ? weightedData : undefined}
+          />
         )}
       </div>
 

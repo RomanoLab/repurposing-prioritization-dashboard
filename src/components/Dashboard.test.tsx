@@ -4,8 +4,10 @@ import Dashboard from "./Dashboard";
 
 // Mock the DrugRepurposingTable to avoid Vaadin Grid issues in tests
 vi.mock("./DrugRepurposingTable", () => ({
-  default: ({ data }: any) => (
-    <div data-testid="drug-table">Table with {data.length} items</div>
+  default: ({ data, weights }: any) => (
+    <div data-testid="drug-table">
+      Table with {data ? `${data.length} items` : "API mode"}
+    </div>
   ),
 }));
 

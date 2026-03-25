@@ -4,15 +4,26 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:server\"",
+    "dev:frontend": "vite",
+    "dev:server": "cd server && npm run dev",
     "build": "tsc && vite build",
+    "build:server": "cd server && npm run build",
     "preview": "vite preview",
+    "start": "cd server && npm start",
+    "db:migrate": "cd server && npm run migrate",
+    "db:import": "cd server && npm run import",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.1",
+    "jsdom": "^29.0.1",
     "typescript": "~5.8.3",
     "vite": "^7.1.7",
     "vitest": "^3.2.4"

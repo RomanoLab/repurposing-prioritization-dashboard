@@ -1,35 +1,59 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { Grid } from "@vaadin/react-components/Grid.js";
 import { GridColumn } from "@vaadin/react-components/GridColumn.js";
 import { GridSortColumn } from "@vaadin/react-components/GridSortColumn.js";
 import { TextField } from "@vaadin/react-components/TextField.js";
 import DrugStructure from "./DrugStructure";
+import { fetchPairs, fetchPairDetail } from "../api/pairsApi";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import type { DrugDiseasePair } from "../types/DrugDiseasePair";
+import type { ComponentWeights } from "./AdvancedOptions";
 import type { ScoreConfig } from "../types/ScoreConfig";
 import schema from "../schema/drugRepurposingSchema.json";
 
 interface DrugRepurposingTableProps {
-  data: DrugDiseasePair[];
+  weights: ComponentWeights;
   scoreConfig: ScoreConfig;
+  /** When provided, uses client-side filtering/sorting (file mode).
+   *  When undefined, uses server-side dataProvider (API mode). */
+  data?: DrugDiseasePair[];
 }
 
 const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
-  data,
+  weights,
   scoreConfig,
+  data,
 }) => {
+  const isFileMode = data !== undefined;
+
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [expandedNarrative, setExpandedNarrative] = useState<string | null>(null);
   const [drugFilter, setDrugFilter] = useState("");
   const [diseaseFilter, setDiseaseFilter] = useState("");
   const [showColumnInfo, setShowColumnInfo] = useState(false);
+  const [totalSize, setTotalSize] = useState<number | null>(null);
   const gridRef = useRef<any>(null);
   const structureContainersRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const structureRootsRef = useRef<Map<string, any>>(new Map());
+  const dataProviderSetRef = useRef(false);
+
+  // Refs for dataProvider closure (API mode only)
+  const weightsRef = useRef(weights);
+  const drugFilterRef = useRef("");
+  const diseaseFilterRef = useRef("");
+
+  // Debounce filters and weights for API mode
+  const debouncedDrugFilter = useDebouncedValue(drugFilter, isFileMode ? 0 : 300);
+  const debouncedDiseaseFilter = useDebouncedValue(diseaseFilter, isFileMode ? 0 : 300);
+  const debouncedWeights = useDebouncedValue(weights, isFileMode ? 0 : 300);
 
   // Get schema descriptions
   const properties = schema.definitions.drugDiseasePair.properties;
 
+  // --- File mode: client-side filtering ---
   const filteredData = useMemo(() => {
+    if (!isFileMode) return [];
     return data.filter((item) => {
       const drugMatch = item.drugName
         .toLowerCase()
@@ -39,169 +63,244 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
         .includes(diseaseFilter.toLowerCase());
       return drugMatch && diseaseMatch;
     });
-  }, [data, drugFilter, diseaseFilter]);
+  }, [data, drugFilter, diseaseFilter, isFileMode]);
 
-  const toggleExpanded = (item: DrugDiseasePair) => {
-    if (expandedItemId === item.id) {
-      setExpandedItemId(null);
-    } else {
-      setExpandedItemId(item.id);
-    }
-  };
+  // --- API mode: keep refs in sync and set up dataProvider ---
+  useEffect(() => { weightsRef.current = debouncedWeights; }, [debouncedWeights]);
+  useEffect(() => { drugFilterRef.current = debouncedDrugFilter; }, [debouncedDrugFilter]);
+  useEffect(() => { diseaseFilterRef.current = debouncedDiseaseFilter; }, [debouncedDiseaseFilter]);
 
   useEffect(() => {
-    if (gridRef.current) {
-      const grid = gridRef.current;
+    if (isFileMode) return;
+    const grid = gridRef.current;
+    if (!grid || dataProviderSetRef.current) return;
+    dataProviderSetRef.current = true;
 
-      grid.multiSort = [
-        { path: "compositePrioritizationScore", direction: "desc" },
-      ];
+    grid.dataProvider = (
+      params: { page: number; pageSize: number; sortOrders?: Array<{ path: string; direction: string }> },
+      callback: (items: DrugDiseasePair[], totalSize: number) => void,
+    ) => {
+      const sortOrder = params.sortOrders?.[0];
+      fetchPairs({
+        page: params.page,
+        pageSize: params.pageSize,
+        sortBy: sortOrder?.path || "compositePrioritizationScore",
+        sortDir: (sortOrder?.direction?.toLowerCase() === "asc" ? "asc" : "desc") as "asc" | "desc",
+        drugFilter: drugFilterRef.current,
+        diseaseFilter: diseaseFilterRef.current,
+        weights: weightsRef.current,
+      }).then(({ items, totalSize: total }) => {
+        setTotalSize(total);
+        callback(items, total);
+      }).catch((err) => {
+        console.error("Data provider error:", err);
+        callback([], 0);
+      });
+    };
+  }, [isFileMode]);
 
-      grid.rowDetailsRenderer = (root: any, _column: any, model: any) => {
-        const item = model.item as DrugDiseasePair;
-        if (expandedItemId === item.id) {
-          const detailsDiv = document.createElement("div");
-          detailsDiv.style.cssText =
-            "padding: 16px 24px; background-color: #f8f9fa; border-top: 1px solid #dee2e6; border-bottom: 1px solid #dee2e6; margin: 0; width: 100%;";
+  // Set default sort
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    grid.multiSort = [
+      { path: "compositePrioritizationScore", direction: "desc" },
+    ];
+  }, []);
 
-          const headerDiv = document.createElement("div");
-          headerDiv.style.cssText =
-            "display: flex; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;";
+  // API mode: clear cache when debounced inputs change
+  useEffect(() => {
+    if (isFileMode) return;
+    if (dataProviderSetRef.current && gridRef.current) {
+      gridRef.current.clearCache();
+    }
+  }, [debouncedDrugFilter, debouncedDiseaseFilter, debouncedWeights, isFileMode]);
 
-          const title = document.createElement("h4");
-          title.style.cssText =
-            "margin: 0; color: #1976d2; font-size: 16px; font-weight: 600;";
-          title.textContent = `${capitalizeDrugName(item.drugName)} for ${item.diseaseName}`;
-
-          const badge = document.createElement("span");
-          badge.style.cssText =
-            "padding: 4px 8px; background-color: #e3f2fd; color: #1976d2; font-size: 12px; border-radius: 12px; font-weight: 500;";
-          badge.textContent = "Detailed Analysis";
-
-          const identifiersDiv = document.createElement("div");
-          identifiersDiv.style.cssText =
-            "font-size: 12px; color: #666; font-family: monospace; margin-left: auto;";
-          identifiersDiv.innerHTML = `<div>NDC: ${item.drugNdcCode}</div><div>Disease: ${item.diseaseOntologyTerm}</div>`;
-
-          headerDiv.appendChild(title);
-          headerDiv.appendChild(badge);
-          headerDiv.appendChild(identifiersDiv);
-          detailsDiv.appendChild(headerDiv);
-
-          // Content container with structure and narrative side by side
-          const contentDiv = document.createElement("div");
-          contentDiv.style.cssText =
-            "display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;";
-
-          // Drug structure container (only if CID is available)
-          if (item.pubchemCid) {
-            // Get or create persistent structure container
-            let structureContainer = structureContainersRef.current.get(
-              item.id,
-            );
-            if (!structureContainer) {
-              structureContainer = document.createElement("div");
-              structureContainer.style.cssText = "flex-shrink: 0;";
-              structureContainersRef.current.set(item.id, structureContainer);
-
-              // Create React root for the new container
-              const structureRoot = createRoot(structureContainer);
-              structureRootsRef.current.set(item.id, structureRoot);
-
-              // Initial render
-              structureRoot.render(
-                React.createElement(DrugStructure, {
-                  pubchemCid: item.pubchemCid,
-                  drugName: capitalizeDrugName(item.drugName),
-                }),
-              );
-            }
-
-            // Append the persistent container to the content
-            contentDiv.appendChild(structureContainer);
-          }
-
-          // Narrative text
-          const narrativeDiv = document.createElement("div");
-          narrativeDiv.style.cssText = "flex: 1; min-width: 300px;";
-
-          const description = document.createElement("p");
-          description.style.cssText =
-            "margin: 0; line-height: 1.6; color: #495057; font-size: 14px; white-space: pre-wrap;";
-          description.textContent = item.narrative;
-
-          narrativeDiv.appendChild(description);
-          contentDiv.appendChild(narrativeDiv);
-
-          detailsDiv.appendChild(contentDiv);
-
-          root.innerHTML = "";
-          root.appendChild(detailsDiv);
-        } else {
-          root.innerHTML = "";
+  const toggleExpanded = useCallback(async (item: DrugDiseasePair) => {
+    if (expandedItemId === item.id) {
+      setExpandedItemId(null);
+      setExpandedNarrative(null);
+    } else {
+      setExpandedItemId(item.id);
+      if (isFileMode) {
+        // In file mode, narrative is already in the item
+        setExpandedNarrative(item.narrative);
+      } else {
+        // In API mode, fetch narrative on demand
+        setExpandedNarrative(null);
+        try {
+          const detail = await fetchPairDetail(item.id);
+          setExpandedNarrative(detail.narrative);
+        } catch (err) {
+          console.error("Failed to fetch narrative:", err);
+          setExpandedNarrative("Failed to load narrative.");
         }
-      };
+      }
+    }
+  }, [expandedItemId, isFileMode]);
 
-      grid.detailsOpenedItems = expandedItemId
-        ? filteredData.filter((item) => item.id === expandedItemId)
-        : [];
+  // Row details renderer
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
 
-      grid.addEventListener("active-item-changed", (e: any) => {
-        const item = e.detail.value as DrugDiseasePair;
-        if (item) {
-          toggleExpanded(item);
-          setTimeout(() => {
-            grid.activeItem = null;
-          }, 100);
+    grid.rowDetailsRenderer = (root: any, _column: any, model: any) => {
+      const item = model.item as DrugDiseasePair;
+      if (expandedItemId === item.id) {
+        const detailsDiv = document.createElement("div");
+        detailsDiv.style.cssText =
+          "padding: 16px 24px; background-color: #f8f9fa; border-top: 1px solid #dee2e6; border-bottom: 1px solid #dee2e6; margin: 0; width: 100%;";
+
+        const headerDiv = document.createElement("div");
+        headerDiv.style.cssText =
+          "display: flex; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;";
+
+        const title = document.createElement("h4");
+        title.style.cssText =
+          "margin: 0; color: #1976d2; font-size: 16px; font-weight: 600;";
+        title.textContent = `${capitalizeDrugName(item.drugName)} for ${item.diseaseName}`;
+
+        const badge = document.createElement("span");
+        badge.style.cssText =
+          "padding: 4px 8px; background-color: #e3f2fd; color: #1976d2; font-size: 12px; border-radius: 12px; font-weight: 500;";
+        badge.textContent = "Detailed Analysis";
+
+        const identifiersDiv = document.createElement("div");
+        identifiersDiv.style.cssText =
+          "font-size: 12px; color: #666; font-family: monospace; margin-left: auto;";
+        identifiersDiv.innerHTML = `<div>NDC: ${item.drugNdcCode}</div><div>Disease: ${item.diseaseOntologyTerm}</div>`;
+
+        headerDiv.appendChild(title);
+        headerDiv.appendChild(badge);
+        headerDiv.appendChild(identifiersDiv);
+        detailsDiv.appendChild(headerDiv);
+
+        const contentDiv = document.createElement("div");
+        contentDiv.style.cssText =
+          "display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;";
+
+        if (item.pubchemCid) {
+          let structureContainer = structureContainersRef.current.get(item.id);
+          if (!structureContainer) {
+            structureContainer = document.createElement("div");
+            structureContainer.style.cssText = "flex-shrink: 0;";
+            structureContainersRef.current.set(item.id, structureContainer);
+
+            const structureRoot = createRoot(structureContainer);
+            structureRootsRef.current.set(item.id, structureRoot);
+
+            structureRoot.render(
+              React.createElement(DrugStructure, {
+                pubchemCid: item.pubchemCid,
+                drugName: capitalizeDrugName(item.drugName),
+              }),
+            );
+          }
+          contentDiv.appendChild(structureContainer);
+        }
+
+        const narrativeDiv = document.createElement("div");
+        narrativeDiv.style.cssText = "flex: 1; min-width: 300px;";
+
+        const description = document.createElement("p");
+        description.style.cssText =
+          "margin: 0; line-height: 1.6; color: #495057; font-size: 14px; white-space: pre-wrap;";
+        description.textContent = expandedNarrative || "Loading narrative...";
+
+        narrativeDiv.appendChild(description);
+        contentDiv.appendChild(narrativeDiv);
+
+        detailsDiv.appendChild(contentDiv);
+
+        root.innerHTML = "";
+        root.appendChild(detailsDiv);
+      } else {
+        root.innerHTML = "";
+      }
+    };
+
+    if (expandedItemId) {
+      if (isFileMode) {
+        grid.detailsOpenedItems = filteredData.filter(
+          (item) => item.id === expandedItemId,
+        );
+      } else {
+        grid.itemIdPath = "id";
+        grid.detailsOpenedItems = [{ id: expandedItemId }];
+      }
+    } else {
+      grid.detailsOpenedItems = [];
+    }
+  }, [expandedItemId, expandedNarrative, isFileMode, filteredData]);
+
+  // Active item click handler
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const handler = (e: any) => {
+      const item = e.detail.value as DrugDiseasePair;
+      if (item) {
+        toggleExpanded(item);
+        setTimeout(() => {
+          grid.activeItem = null;
+        }, 100);
+      }
+    };
+
+    grid.addEventListener("active-item-changed", handler);
+    return () => grid.removeEventListener("active-item-changed", handler);
+  }, [toggleExpanded]);
+
+  // Add tooltips to column headers
+  useEffect(() => {
+    if (!gridRef.current) return;
+    const grid = gridRef.current;
+
+    setTimeout(() => {
+      const headers = grid.shadowRoot?.querySelectorAll(
+        "vaadin-grid-cell-content",
+      );
+      headers?.forEach((header: any) => {
+        const text = header.textContent?.trim();
+        if (text) {
+          switch (text) {
+            case "Drug":
+              header.title = "Drug Name and NDC Code";
+              break;
+            case "Disease":
+              header.title = "Disease Name and Ontology Term";
+              break;
+            case "🎯 Priority":
+              header.title =
+                "Final Prioritization Score (Composite of All Metrics)";
+              break;
+            case "Biological":
+              header.title = "Biological Suitability Score";
+              break;
+            case "Medical Need":
+              header.title = "Unmet Medical Need Score";
+              break;
+            case "Economic":
+              header.title = "Economic Suitability Score";
+              break;
+            case "Market":
+              header.title = "Market Size Score";
+              break;
+            case "Competitive":
+              header.title = "Competitive Advantage Score";
+              break;
+            case "Regulatory":
+              header.title = "Regulatory Feasibility Score";
+              break;
+            case "Risk":
+              header.title = "Clinical Risk Score (Lower is Better)";
+              break;
+          }
         }
       });
-
-      // Add tooltips to column headers
-      setTimeout(() => {
-        const headers = grid.shadowRoot?.querySelectorAll(
-          "vaadin-grid-cell-content",
-        );
-        headers?.forEach((header: any) => {
-          const text = header.textContent?.trim();
-          if (text) {
-            switch (text) {
-              case "Drug":
-                header.title = "Drug Name and NDC Code";
-                break;
-              case "Disease":
-                header.title = "Disease Name and Ontology Term";
-                break;
-              case "🎯 Priority":
-                header.title =
-                  "Final Prioritization Score (Composite of All Metrics)";
-                break;
-              case "Biological":
-                header.title = "Biological Suitability Score";
-                break;
-              case "Medical Need":
-                header.title = "Unmet Medical Need Score";
-                break;
-              case "Economic":
-                header.title = "Economic Suitability Score";
-                break;
-              case "Market":
-                header.title = "Market Size Score";
-                break;
-              case "Competitive":
-                header.title = "Competitive Advantage Score";
-                break;
-              case "Regulatory":
-                header.title = "Regulatory Feasibility Score";
-                break;
-              case "Risk":
-                header.title = "Clinical Risk Score (Lower is Better)";
-                break;
-            }
-          }
-        });
-      }, 100);
-    }
-  }, [expandedItemId, filteredData]);
+    }, 100);
+  }, []);
 
   const capitalizeDrugName = (name: string) => {
     const words = name.split(/\s+/);
@@ -227,6 +326,13 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
     setDrugFilter("");
     setDiseaseFilter("");
   };
+
+  // Compute display count
+  const displayCount = isFileMode
+    ? `Total drug-disease pairs: ${filteredData.length.toLocaleString()}`
+    : totalSize !== null
+      ? `Total drug-disease pairs: ${totalSize.toLocaleString()}`
+      : "Loading...";
 
   return (
     <div
@@ -346,13 +452,13 @@ const DrugRepurposingTable: React.FC<DrugRepurposingTableProps> = ({
             marginLeft: "auto",
           }}
         >
-          Total number of drug disease pairs: 100,000
+          {displayCount}
         </div>
       </div>
 
       <Grid
         ref={gridRef}
-        items={filteredData}
+        {...(isFileMode ? { items: filteredData } : {})}
         theme="row-stripes"
         style={{
           width: "100%",
